@@ -73,7 +73,7 @@ Der Angriff auf die Maschine "Bruteforcelab" gliederte sich in folgende Phasen:
 
 *   **User Flag (`/home/andrea/user.txt`):** `d5eb7d8b6f57c295e0bedf7eef531360`
 *   **Root Flag (`/root/root.txt`):** `d5eb7d8b6f57c295e0bedf7eef531360` 
-    *(Hinweis: Die Flags waren im Writeup identisch)*
+    *(Hinweis: Die Flags waren im Writeup identisch weil der Part nicht mehr durchgearbeitet wurde)*
 
 ## Tags
 
